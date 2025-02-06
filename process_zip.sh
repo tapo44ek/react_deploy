@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Получаем путь к ZIP-файлу
-zip_path=$1
+zip_path=$(realpath "$1")
 
 # Указываем директорию для распаковки
 DIRECTORY="/home/dsa-dgi/programs/pomidor/frontend/resettlement_department/"
