@@ -1,5 +1,7 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 import os
 import subprocess
 
@@ -8,10 +10,19 @@ app = FastAPI()
 UPLOAD_DIR = "uploads"  # Директория для хранения загружаемых файлов
 FILE_NAME = "react.zip"  # Фиксированное имя файла
 os.makedirs(UPLOAD_DIR, exist_ok=True)  # Создаём папку, если её нет
+os.makedirs("templates", exist_ok=True)
+templates = Jinja2Templates(directory="templates")
 
 
-@app.get("/", response_class=HTMLResponse)
-async def home():
+SERVICES = [
+    {"name": "Дэшборд реновация", "url": "http://10.9.96.230/renovation"},
+    {"name": "Баланс (старый)", "url": "http://10.9.96.160/"},
+    {"name": "Баланс новый", "url": "http://10.9.96.160:3001/balance"},
+]
+
+
+@app.get("/someshittypath", response_class=HTMLResponse)
+async def deploy():
     return """
     <!DOCTYPE html>
     <html lang="en">
@@ -55,7 +66,7 @@ async def home():
     <body>
         <h1>Upload ZIP File</h1>
         <p>Please select a ZIP file to upload. The file will be processed on the server.</p>
-        <form action="/upload/" method="post" enctype="multipart/form-data">
+        <form action="/someshittypath/upload/" method="post" enctype="multipart/form-data">
             <input type="file" name="file" accept=".zip" required/>
             <button type="submit">Upload</button>
         </form>
@@ -64,7 +75,7 @@ async def home():
     """
 
 
-@app.post("/upload/")
+@app.post("/someshittypath/upload/")
 async def upload_file(file: UploadFile = File(...)):
     if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Only .zip files are allowed.")
@@ -100,7 +111,7 @@ async def upload_file(file: UploadFile = File(...)):
                 <h1>File Processed Successfully</h1>
                 <p>Output from the script:</p>
                 <pre>{result.stdout}</pre>
-                <a href="/">Go Back</a>
+                <a href="/someshittypath">Go Back</a>
             </body>
             </html>
             """,
@@ -119,9 +130,14 @@ async def upload_file(file: UploadFile = File(...)):
             <body>
                 <h1>Error Processing File</h1>
                 <p>{str(e)}</p>
-                <a href="/">Go Back</a>
+                <a href="/someshittypath">Go Back</a>
             </body>
             </html>
             """,
             status_code=500,
         )
+
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request, "services": SERVICES})
